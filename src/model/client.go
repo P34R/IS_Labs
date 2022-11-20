@@ -1,8 +1,9 @@
 package model
 
 type Client struct {
-	Id        int    `json:"id"`
-	FirstName string `json:"first"`
-	LastName  string `json:"last"`
+	Id        int    `json:"-"`
+	FirstName string `json:"name"`
+	LastName  string `json:"surname"`
 	Phone     string `json:"phone"`
+	Email     string `json:"email"`
 }

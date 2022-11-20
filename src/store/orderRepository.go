@@ -24,3 +24,16 @@ func (r *OrderRepository) Read(id int) (*model.Order, error) {
 	}
 	return &m, nil
 }
+
+func (r *OrderRepository) Update(id int, status string) error {
+	n, err := r.Read(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Store.db.Exec("UPDATE \"orders\" SET \"status\"=$1 WHERE \"id\"=$2", status, n.Id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

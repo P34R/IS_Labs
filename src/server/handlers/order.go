@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type Order struct {
@@ -22,8 +24,19 @@ func (h *Order) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case http.MethodGet:
-		h.GetOrder(rw, r)
-
+		if !HandleBasicAuth(r, h.s, 3) {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write([]byte("username or password are incorrect"))
+			return
+		}
+		h.ReadOrder(rw, r)
+	case http.MethodPost:
+		if !HandleBasicAuth(r, h.s, 3) {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write([]byte("username or password are incorrect"))
+			return
+		}
+		h.UpdateOrder(rw, r)
 	default:
 		h.l.Println(http.StatusNotFound)
 	}
@@ -31,6 +44,11 @@ func (h *Order) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Order) CreateOrder(rw http.ResponseWriter, r *http.Request) {
+	if !HandleBasicAuth(r, h.s, 1) {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte("username or password are incorrect"))
+		return
+	}
 	if r.Method != http.MethodPost {
 		return
 	}
@@ -40,12 +58,16 @@ func (h *Order) CreateOrder(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
+	if a.Date == "" {
+		y, m, d := time.Now().Date()
+		a.Date = m.String() + "." + strconv.Itoa(d) + "." + strconv.Itoa(y)
+	}
 	if err := h.s.Order().Create(&a); err != nil {
 		http.Error(rw, err.Error(), http.StatusConflict)
 		return
 	}
 }
-func (h *Order) GetOrder(rw http.ResponseWriter, r *http.Request) {
+func (h *Order) ReadOrder(rw http.ResponseWriter, r *http.Request) {
 	ints := parsers.GetIntsFromURL(r.URL.Path)
 	if len(ints) == 0 {
 		http.Error(rw, "Id was not provided", http.StatusBadRequest)
@@ -59,6 +81,26 @@ func (h *Order) GetOrder(rw http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(rw)
 	if err = encoder.Encode(&mod); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func (h *Order) UpdateOrder(rw http.ResponseWriter, r *http.Request) {
+	ints := parsers.GetIntsFromURL(r.URL.Path)
+	if len(ints) == 0 {
+		http.Error(rw, "Id was not provided", http.StatusBadRequest)
+	}
+	type stat struct {
+		Status model.Status `json:"status"`
+	}
+	var st stat
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&st); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := h.s.Order().Update(ints[0], string(st.Status)); err != nil {
+		http.Error(rw, err.Error(), http.StatusConflict)
 		return
 	}
 }

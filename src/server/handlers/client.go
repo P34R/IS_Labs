@@ -22,7 +22,12 @@ func (h *Client) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case http.MethodGet:
-		h.GetClient(rw, r)
+		if !HandleBasicAuth(r, h.s, 3) {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write([]byte("username or password are incorrect"))
+			return
+		}
+		h.ReadClient(rw, r)
 
 	default:
 		h.l.Println(http.StatusNotFound)
@@ -31,6 +36,11 @@ func (h *Client) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Client) CreateClient(rw http.ResponseWriter, r *http.Request) {
+	if !HandleBasicAuth(r, h.s, 1) {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte("username or password are incorrect"))
+		return
+	}
 	if r.Method != http.MethodPost {
 		return
 	}
@@ -45,7 +55,7 @@ func (h *Client) CreateClient(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-func (h *Client) GetClient(rw http.ResponseWriter, r *http.Request) {
+func (h *Client) ReadClient(rw http.ResponseWriter, r *http.Request) {
 	ints := parsers.GetIntsFromURL(r.URL.Path)
 	if len(ints) == 0 {
 		http.Error(rw, "Id was not provided", http.StatusBadRequest)

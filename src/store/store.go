@@ -12,6 +12,8 @@ type Store struct {
 	car    *CarRepository
 	client *ClientRepository
 	order  *OrderRepository
+	user   *UserRepository
+	carInd *CarIndexRepository
 }
 
 func NewStore() *Store {
@@ -64,4 +66,21 @@ func (s *Store) Order() *OrderRepository {
 		}
 	}
 	return s.order
+}
+
+func (s *Store) User() *UserRepository {
+	if s.user == nil {
+		s.user = &UserRepository{
+			Store: s,
+		}
+	}
+	return s.user
+}
+func (s *Store) CarIndex() *CarIndexRepository {
+	if s.carInd == nil {
+		s.carInd = &CarIndexRepository{
+			Store: s,
+		}
+	}
+	return s.carInd
 }
